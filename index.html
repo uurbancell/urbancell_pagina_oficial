@@ -11,126 +11,652 @@
     <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800;900&display=swap" rel="stylesheet">
     <link rel="stylesheet" href="style.css">
 
-    <!-- Script de Generación de Código y Registro -->
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        /* NAVEGACIÓN ENTRE APARTADOS */
+        .tab-nav {
+            display: flex;
+            background: rgba(255, 255, 255, 0.08);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+            border-radius: 12px;
+            padding: 5px;
+            margin-bottom: 22px;
+            gap: 5px;
+        }
+        .tab-btn {
+            flex: 1;
+            padding: 10px 14px;
+            border: none;
+            background: transparent;
+            color: #aaa;
+            font-family: inherit;
+            font-weight: 700;
+            font-size: 0.85rem;
+            border-radius: 8px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 6px;
+        }
+        .tab-btn.active {
+            background: #a55eea;
+            color: #ffffff;
+            box-shadow: 0 4px 12px rgba(165, 94, 234, 0.3);
+        }
+
+        /* SECCIONES / VISTAS */
+        .view-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in-out;
+        }
+        .view-section.active {
+            display: block;
+        }
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        /* TEMPORIZADOR */
+        .timer-box {
+            background: rgba(255, 71, 87, 0.15);
+            border: 1px solid #ff4757;
+            border-radius: 12px;
+            padding: 12px;
+            margin: 18px 0;
+            color: #fff;
+            text-align: center;
+        }
+        .timer-title {
+            font-size: 0.85rem;
+            text-transform: uppercase;
+            letter-spacing: 1px;
+            color: #ff6b81;
+            font-weight: 700;
+        }
+        .timer-display {
+            font-size: 1.8rem;
+            font-weight: 900;
+            color: #ffffff;
+            margin-top: 4px;
+            font-family: monospace;
+            letter-spacing: 2px;
+        }
+        .about-section {
+            margin: 20px 0;
+            padding: 15px;
+            background: rgba(255, 255, 255, 0.05);
+            border-radius: 12px;
+            border: 1px solid rgba(255, 255, 255, 0.1);
+        }
+        .about-title {
+            font-size: 1.05rem;
+            font-weight: 700;
+            color: #fff;
+            margin-bottom: 6px;
+        }
+
+        /* APARTADO DE PRODUCTOS E IMÁGENES */
+        .products-header {
+            text-align: center;
+            margin-bottom: 20px;
+        }
+        .products-title-main {
+            font-size: 1.3rem;
+            font-weight: 800;
+            color: #fff;
+        }
+        .products-subtitle {
+            font-size: 0.85rem;
+            color: #aaa;
+            margin-top: 4px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+            gap: 15px;
+        }
+        .product-card {
+            background: rgba(255, 255, 255, 0.07);
+            border: 1px solid rgba(255, 255, 255, 0.12);
+            border-radius: 14px;
+            padding: 16px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            transition: all 0.3s ease;
+        }
+        .product-card.disabled-card {
+            opacity: 0.5;
+            filter: grayscale(90%);
+        }
+        .product-img-wrapper {
+            width: 100%;
+            height: 160px;
+            border-radius: 10px;
+            overflow: hidden;
+            background: rgba(0, 0, 0, 0.25);
+            margin-bottom: 12px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            position: relative;
+        }
+        .product-img-wrapper.clickable {
+            cursor: pointer;
+        }
+        .product-img-wrapper.clickable::after {
+            content: "🔍 Ampliar";
+            position: absolute;
+            bottom: 8px;
+            right: 8px;
+            background: rgba(0, 0, 0, 0.7);
+            color: #fff;
+            font-size: 0.68rem;
+            font-weight: 700;
+            padding: 4px 8px;
+            border-radius: 12px;
+            backdrop-filter: blur(4px);
+            pointer-events: none;
+            opacity: 0.9;
+            transition: opacity 0.2s;
+        }
+        .product-img-wrapper.clickable:hover .product-img {
+            transform: scale(1.06);
+        }
+        .product-img {
+            width: 100%;
+            height: 100%;
+            object-fit: cover;
+            transition: transform 0.3s ease;
+        }
+        .product-img-placeholder {
+            font-size: 2.5rem;
+            opacity: 0.4;
+        }
+        .stock-badge {
+            display: inline-block;
+            font-size: 0.75rem;
+            font-weight: 700;
+            padding: 4px 10px;
+            border-radius: 20px;
+            margin-bottom: 8px;
+            width: fit-content;
+        }
+        .stock-in {
+            background: rgba(46, 213, 115, 0.2);
+            color: #2ed573;
+            border: 1px solid #2ed573;
+        }
+        .stock-out {
+            background: rgba(255, 71, 87, 0.2);
+            color: #ff4757;
+            border: 1px solid #ff4757;
+        }
+        .product-name {
+            font-size: 1rem;
+            font-weight: 700;
+            color: #fff;
+            margin: 4px 0 12px 0;
+        }
+        .btn-product {
+            padding: 10px;
+            background: #25d366;
+            color: #fff;
+            border: none;
+            border-radius: 8px;
+            font-weight: 700;
+            font-size: 0.85rem;
+            cursor: pointer;
+            transition: transform 0.2s, background 0.2s;
+            text-align: center;
+            text-decoration: none;
+            display: block;
+        }
+        .btn-product:hover {
+            transform: translateY(-2px);
+            background: #20ba5a;
+        }
+        .btn-product.disabled {
+            background: #333 !important;
+            color: #888 !important;
+            cursor: not-allowed !important;
+            pointer-events: none !important;
+        }
+
+        .btn-goto-products {
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            background: linear-gradient(135deg, #a55eea, #00d2d3);
+            color: #fff;
+            border: none;
+            padding: 14px;
+            border-radius: 12px;
+            font-weight: 800;
+            font-size: 0.95rem;
+            cursor: pointer;
+            margin-top: 15px;
+            box-shadow: 0 6px 18px rgba(165, 94, 234, 0.25);
+            transition: transform 0.2s;
+        }
+        .btn-goto-products:hover {
+            transform: translateY(-2px);
+        }
+
+        /* MODAL VISOR DE IMAGEN A PANTALLA COMPLETA */
+        .image-modal {
+            display: none;
+            position: fixed;
+            z-index: 10000;
+            left: 0;
+            top: 0;
+            width: 100%;
+            height: 100%;
+            background-color: rgba(0, 0, 0, 0.88);
+            backdrop-filter: blur(8px);
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+            box-sizing: border-box;
+            opacity: 0;
+            transition: opacity 0.25s ease;
+        }
+        .image-modal.active {
+            display: flex;
+            opacity: 1;
+        }
+        .image-modal-content {
+            position: relative;
+            max-width: 90%;
+            max-height: 90vh;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            animation: zoomIn 0.25s ease;
+        }
+        @keyframes zoomIn {
+            from { transform: scale(0.85); opacity: 0; }
+            to { transform: scale(1); opacity: 1; }
+        }
+        .image-modal-img {
+            max-width: 100%;
+            max-height: 75vh;
+            border-radius: 14px;
+            object-fit: contain;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.8);
+            border: 1px solid rgba(255, 255, 255, 0.15);
+        }
+        .image-modal-caption {
+            color: #fff;
+            margin-top: 14px;
+            font-size: 1rem;
+            font-weight: 700;
+            text-align: center;
+        }
+        .image-modal-close {
+            position: absolute;
+            top: -15px;
+            right: -15px;
+            background: rgba(255, 255, 255, 0.25);
+            border: 1px solid rgba(255, 255, 255, 0.4);
+            color: #fff;
+            font-size: 1.8rem;
+            width: 38px;
+            height: 38px;
+            border-radius: 50%;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            line-height: 1;
+            transition: background 0.2s, transform 0.2s;
+            z-index: 10001;
+        }
+        .image-modal-close:hover {
+            background: #ff4757;
+            transform: scale(1.1);
+        }
+    </style>
+
     <script>
-        // REEMPLAZA ESTE NÚMERO POR EL TUYO REAL (ej: 59899123456)
-        const NUMERO_WHATSAPP = "59897305438";
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIKMKsPze8lmrUw9O2TbF22O8sT1fRaZk",
+            authDomain: "urbancelloficial.firebaseapp.com",
+            databaseURL: "https://urbancelloficial-default-rtdb.firebaseio.com",
+            projectId: "urbancelloficial",
+            storageBucket: "urbancelloficial.firebasestorage.app",
+            messagingSenderId: "287351180379",
+            appId: "1:287351180379:web:73ce06da8fd04720f5037e",
+            measurementId: "G-190ST11CEJ"
+        };
+
+        if (!firebase.apps.length) {
+            firebase.initializeApp(firebaseConfig);
+        }
+        const db = firebase.database();
+
+        let codigoGlobal = "";
+        let numeroWhatsapp = "59897305438";
+        let timerInterval = null;
 
         function generarCodigo() {
             const caracteres = "ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789";
             let codigo = "URB-";
-
             for (let i = 0; i < 8; i++) {
-                codigo += caracteres.charAt(
-                    Math.floor(Math.random() * caracteres.length)
-                );
+                codigo += caracteres.charAt(Math.floor(Math.random() * caracteres.length));
             }
+            codigoGlobal = codigo;
 
-            // Muestra el código generado en la pantalla
             const elementoCodigo = document.getElementById("codigo");
-            if (elementoCodigo) {
-                elementoCodigo.innerText = codigo;
-            }
+            if (elementoCodigo) elementoCodigo.innerText = codigo;
 
-            // Guarda el registro con fecha y hora en localStorage
-            let registros = JSON.parse(localStorage.getItem("codigos")) || [];
-            registros.push({
-                codigo: codigo,
-                fecha: new Date().toLocaleString()
-            });
+            actualizarEnlaces();
+        }
 
-            localStorage.setItem("codigos", JSON.stringify(registros));
-
-            // Actualiza el enlace de WhatsApp con el código recién generado
+        function actualizarEnlaces() {
             const wsBtn = document.getElementById("wsLink");
             if (wsBtn) {
-                const mensaje = `¡Hola Urbancell! Escaneé el QR. Mi código único de 15% de descuento es: *${codigo}*. Quería consultar por accesorios e ingresar mi opinión.`;
-                wsBtn.href = `https://wa.me/${NUMERO_WHATSAPP}?text=${encodeURIComponent(mensaje)}`;
+                const mensaje = `¡Hola Urbancell! Escaneé el QR. Mi código único de 15% de descuento es: *${codigoGlobal}*. Quería hacer una consulta general.`;
+                wsBtn.href = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(mensaje)}`;
             }
 
-            // Configura el botón de copiar código
             const copyBtn = document.getElementById("copyBtn");
             if (copyBtn) {
                 copyBtn.onclick = function() {
-                    navigator.clipboard.writeText(codigo).then(() => {
+                    navigator.clipboard.writeText(codigoGlobal).then(() => {
                         const copyText = document.getElementById("copyText");
-                        copyText.innerText = "¡Copiado!";
-                        setTimeout(() => { copyText.innerText = "Copiar"; }, 2000);
+                        if (copyText) copyText.innerText = "¡Copiado!";
+                        setTimeout(() => { if (copyText) copyText.innerText = "Copiar"; }, 2000);
                     });
                 };
             }
         }
 
-        window.onload = generarCodigo;
+        function consultarProducto(nombreProducto) {
+            const mensaje = `¡Hola Urbancell! Me interesa adquirir *${nombreProducto}* aplicando mi código de 15% OFF: *${codigoGlobal}*. ¿Sigue disponible?`;
+            const url = `https://wa.me/${numeroWhatsapp}?text=${encodeURIComponent(mensaje)}`;
+            window.open(url, '_blank');
+        }
+
+        function cambiarApartado(nombreVista) {
+            document.querySelectorAll('.view-section').forEach(el => el.classList.remove('active'));
+            document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+
+            if (nombreVista === 'productos') {
+                document.getElementById('viewProductos').classList.add('active');
+                document.getElementById('tabBtnProductos').classList.add('active');
+            } else {
+                document.getElementById('viewInicio').classList.add('active');
+                document.getElementById('tabBtnInicio').classList.add('active');
+            }
+            window.scrollTo({ top: 0, behavior: 'smooth' });
+        }
+
+        /* FUNCIONES DEL VISOR DE IMAGEN A PANTALLA COMPLETA */
+        function abrirModalImagen(src, titulo) {
+            const modal = document.getElementById("imageModal");
+            const modalImg = document.getElementById("modalImg");
+            const modalCaption = document.getElementById("modalCaption");
+
+            if (modal && modalImg) {
+                modalImg.src = src;
+                if (modalCaption) modalCaption.innerText = titulo || "";
+                modal.classList.add("active");
+                document.body.style.overflow = "hidden";
+            }
+        }
+
+        function cerrarModalImagen(e) {
+            const modal = document.getElementById("imageModal");
+            if (modal) {
+                modal.classList.remove("active");
+                document.body.style.overflow = "";
+            }
+        }
+
+        document.addEventListener("keydown", function(e) {
+            if (e.key === "Escape") {
+                cerrarModalImagen();
+            }
+        });
+
+        function manejarTemporizador(enabled, targetTime) {
+            const timerContainer = document.getElementById("timerContainer");
+            const timerDisplay = document.getElementById("timerDisplay");
+            const timerTitle = document.getElementById("timerTitle");
+
+            if (!timerContainer || !timerDisplay) return;
+
+            if (!enabled || !targetTime || targetTime <= 0) {
+                timerContainer.style.display = "none";
+                if (timerInterval) clearInterval(timerInterval);
+                return;
+            }
+
+            timerContainer.style.display = "block";
+
+            function actualizarReloj() {
+                const now = new Date().getTime();
+                const distance = targetTime - now;
+
+                if (distance <= 0) {
+                    timerDisplay.innerText = "00m 00s";
+                    if (timerTitle) timerTitle.innerText = "¡OFERTA EXPIRADA!";
+                    if (timerInterval) clearInterval(timerInterval);
+                    return;
+                }
+
+                if (timerTitle) timerTitle.innerText = "⚡ Tu Descuento Expira En:";
+
+                const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((distance % (1000 * 60)) / 1000);
+
+                const minStr = m < 10 ? '0' + m : m;
+                const secStr = s < 10 ? '0' + s : s;
+
+                timerDisplay.innerText = `${minStr}m ${secStr}s`;
+            }
+
+            actualizarReloj();
+            if (timerInterval) clearInterval(timerInterval);
+            timerInterval = setInterval(actualizarReloj, 1000);
+        }
+
+        function renderizarPagina(data) {
+            if (!data) return;
+
+            if (data.whatsapp) {
+                numeroWhatsapp = data.whatsapp;
+                actualizarEnlaces();
+            }
+
+            if (data.timer) {
+                manejarTemporizador(data.timer.enabled, data.timer.targetTime);
+            }
+
+            if (data.products) {
+                const container = document.getElementById("productsGrid");
+                if (!container) return;
+                container.innerHTML = "";
+                
+                data.products.forEach(p => {
+                    const card = document.createElement("div");
+                    card.className = `product-card ${p.inStock ? '' : 'disabled-card'}`;
+                    
+                    const isClickable = p.image ? true : false;
+                    const imageWrapperClass = `product-img-wrapper ${isClickable ? 'clickable' : ''}`;
+                    const imageClickAttr = isClickable 
+                        ? `onclick="abrirModalImagen('${p.image.replace(/'/g, "\\'")}', '${p.name.replace(/'/g, "\\'")}')"`
+                        : '';
+
+                    const imageHtml = p.image 
+                        ? `<img src="${p.image}" alt="${p.name}" class="product-img">`
+                        : `<span class="product-img-placeholder">📱</span>`;
+
+                    const btnHtml = p.inStock
+                        ? `<button type="button" class="btn-product" onclick="consultarProducto('${p.name.replace(/'/g, "\\'")}')">Pedir con 15% OFF</button>`
+                        : `<button type="button" class="btn-product disabled" disabled>Agotado</button>`;
+
+                    card.innerHTML = `
+                        <div class="${imageWrapperClass}" ${imageClickAttr}>
+                            ${imageHtml}
+                        </div>
+                        <span class="stock-badge ${p.inStock ? 'stock-in' : 'stock-out'}">
+                            ${p.inStock ? 'Con stock' : 'Sin stock'}
+                        </span>
+                        <div class="product-name">${p.name}</div>
+                        ${btnHtml}
+                    `;
+                    container.appendChild(card);
+                });
+            }
+        }
+
+        function registrarVisita() {
+            const urlParams = new URLSearchParams(window.location.search);
+            const esQR = urlParams.get('ref') === 'qr' || urlParams.get('from') === 'qr' || urlParams.get('qr') === '1';
+
+            if (!sessionStorage.getItem("urbancell_visited")) {
+                sessionStorage.setItem("urbancell_visited", "true");
+
+                db.ref("stats/totalVisits").transaction(current => (current || 0) + 1);
+
+                if (esQR) {
+                    db.ref("stats/qrScans").transaction(current => (current || 0) + 1);
+                }
+            }
+        }
+
+        window.onload = function() {
+            generarCodigo();
+            registrarVisita();
+
+            db.ref().on('value', (snapshot) => {
+                const data = snapshot.val();
+                if (data) {
+                    renderizarPagina(data);
+                }
+            });
+        };
     </script>
 </head>
 
 <body>
 
-    <!-- Orbes de luz neón de fondo -->
     <div class="glow-orb orb-purple"></div>
     <div class="glow-orb orb-blue"></div>
 
     <main class="card-wrapper">
         <div class="glass-card">
 
-            <!-- Encabezado con la Mascota de Urbancell -->
+            <!-- MASCOTA Y LOGO -->
             <div class="mascot-container">
                 <div class="avatar-ring">
                     <img src="mascota.png" alt="Mascota Urbancell" class="mascot-img">
                 </div>
             </div>
 
-            <div class="badge-pill">
-                <span class="pulse-dot"></span>
-                Iniciativa Urbancell
-            </div>
+            <!-- NAVEGACIÓN ENTRE APARTADOS -->
+            <nav class="tab-nav">
+                <button type="button" id="tabBtnInicio" class="tab-btn active" onclick="cambiarApartado('inicio')">
+                    🎁 Regalo & Descuento
+                </button>
+                <button type="button" id="tabBtnProductos" class="tab-btn" onclick="cambiarApartado('productos')">
+                    📦 Ver Productos
+                </button>
+            </nav>
 
-            <h1 class="title">¡Lamento haberte ilusionado... 😅!</h1>
+            <!-- APARTADO 1: INICIO -->
+            <div id="viewInicio" class="view-section active">
 
-            <p class="description">
-                Pero no encontramos mejor manera que llamar tu atención así. Somos <strong>Urbancell</strong>, un
-                emprendimiento que recién arranca y, como pedido de disculpas, te queremos regalar un <strong>15% de
-                    descuento</strong> en tu próxima compra para que disfrutes y nos ayudes a crecer.
-            </p>
-
-            <!-- Caja del Código Neón -->
-            <div class="discount-box">
-                <span class="discount-label">Tu Código Único de Descuento</span>
-                <div class="code-display">
-                    <!-- ID "codigo" actualizado para conectar con tu script -->
-                    <span id="codigo" class="code-text">URB-00000000</span>
-                    <button id="copyBtn" class="copy-btn" title="Copiar código">
-                        <svg id="copyIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
-                            <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
-                        </svg>
-                        <span id="copyText">Copiar</span>
-                    </button>
+                <div class="badge-pill">
+                    <span class="pulse-dot"></span>
+                    Iniciativa Urbancell
                 </div>
-                <div class="discount-badge">🎁 15% OFF en tu próxima compra</div>
+
+                <h1 class="title">¡Lamento haberte ilusionado... 😅!</h1>
+
+                <p class="description">
+                    Pero no encontramos mejor manera que llamar tu atención así que decidimos crear esta iniciativa. Somos <strong>Urbancell</strong>, un
+                    emprendimiento que recién arranca y, como pedido de disculpas, te queremos regalar un <strong>15% de
+                        descuento</strong> en tu próxima compra para que disfrutes y nos ayudes a crecer.
+                </p>
+
+                <div id="timerContainer" class="timer-box" style="display: none;">
+                    <div id="timerTitle" class="timer-title">⚡ Tu Descuento Expira En:</div>
+                    <div id="timerDisplay" class="timer-display">15m 00s</div>
+                </div>
+
+                <div class="about-section">
+                    <div class="about-title">📱 ¿Qué es Urbancell?</div>
+                    <p class="description" style="margin: 0; font-size: 0.9rem;">
+                        Somos tu nueva tienda de accesorios tecnológicos en Paysandú. Te traemos auriculares Bluetooth, cargadores rápidos, fundas y power banks con la mejor relación calidad-precio.
+                    </p>
+                </div>
+
+                <div class="discount-box">
+                    <span class="discount-label">Tu Código Único de Descuento</span>
+                    <div class="code-display">
+                        <span id="codigo" class="code-text">URB-00000000</span>
+                        <button id="copyBtn" class="copy-btn" title="Copiar código">
+                            <svg id="copyIcon" width="18" height="18" fill="none" stroke="currentColor" stroke-width="2" viewBox="0 0 24 24">
+                                <path d="M8 16H6a2 2 0 01-2-2V6a2 2 0 012-2h8a2 2 0 012 2v2m-6 12h8a2 2 0 002-2v-8a2 2 0 00-2-2h-8a2 2 0 00-2 2v8a2 2 0 002 2z"></path>
+                            </svg>
+                            <span id="copyText">Copiar</span>
+                        </button>
+                    </div>
+                    <div class="discount-badge">🎁 15% OFF en tu próxima compra</div>
+                </div>
+
+                <button type="button" class="btn-goto-products" onclick="cambiarApartado('productos')">
+                    🛍️ Explorar Catálogo de Productos
+                </button>
+
+                <div class="actions" style="margin-top: 25px;">
+                    <a id="wsLink" href="#" target="_blank" class="btn btn-whatsapp">
+                        <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
+                        </svg>
+                        Consulta General por WhatsApp
+                    </a>
+
+                    <a href="https://instagram.com/urbancell_paysandu" target="_blank" class="btn btn-instagram">
+                        <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
+                            <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
+                        </svg>
+                        Seguinos en Instagram
+                    </a>
+                </div>
+
+                <p class="invite-note">
+                    Te invitamos a seguirnos en nuestras redes sociales y darnos tu opinión sobre esta iniciativa. ¡Nos ayuda muchísimo a crecer!
+                </p>
             </div>
 
-            <!-- Botones principales -->
-            <div class="actions">
-                <a id="wsLink" href="#" target="_blank" class="btn btn-whatsapp">
-                    <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946.003-6.556 5.338-11.891 11.893-11.891 3.181.001 6.167 1.24 8.413 3.488 2.245 2.248 3.481 5.236 3.48 8.414-.003 6.557-5.338 11.892-11.893 11.892-1.99-.001-3.951-.5-5.688-1.448l-6.305 1.654zm6.597-3.807c1.676.995 3.276 1.591 5.392 1.592 5.448 0 9.886-4.434 9.889-9.885.002-5.462-4.415-9.89-9.881-9.892-5.452 0-9.887 4.434-9.889 9.884-.001 2.225.651 3.891 1.746 5.634l-.999 3.648 3.742-.981zm11.387-5.464c-.074-.124-.272-.198-.57-.347-.297-.149-1.758-.868-2.031-.967-.272-.099-.47-.149-.669.149-.198.297-.768.967-.941 1.165-.173.198-.347.223-.644.074-.297-.149-1.255-.462-2.39-1.475-.883-.788-1.48-1.761-1.653-2.059-.173-.297-.018-.458.13-.606.134-.133.297-.347.446-.521.151-.172.2-.296.3-.495.099-.198.05-.372-.025-.521-.075-.148-.669-1.611-.916-2.206-.242-.579-.487-.501-.669-.51l-.57-.01c-.198 0-.52.074-.792.372s-1.04 1.016-1.04 2.479 1.065 2.876 1.213 3.074c.149.198 2.095 3.2 5.076 4.487.709.306 1.263.489 1.694.626.712.226 1.36.194 1.872.118.571-.085 1.758-.719 2.006-1.413.248-.695.248-1.29.173-1.414z" />
-                    </svg>
-                    Reclamar Descuento por WhatsApp
-                </a>
+            <!-- APARTADO 2: CATÁLOGO DE PRODUCTOS EXCLUSIVO -->
+            <div id="viewProductos" class="view-section">
+                <div class="products-header">
+                    <h2 class="products-title-main">🔥 Catálogo de Productos</h2>
+                    <p class="products-subtitle">Aprovechá tu 15% OFF en cualquiera de estos accesorios disponibles</p>
+                </div>
 
-                <a href="https://www.instagram.com/urbancell_pay/" target="_blank" class="btn btn-instagram">
-                    <svg width="22" height="22" fill="currentColor" viewBox="0 0 24 24">
-                        <path d="M12 2.163c3.204 0 3.584.012 4.85.07 3.252.148 4.771 1.691 4.919 4.919.058 1.265.069 1.645.069 4.849 0 3.205-.012 3.584-.069 4.849-.149 3.225-1.664 4.771-4.919 4.919-1.266.058-1.644.07-4.85.07-3.204 0-3.584-.012-4.849-.07-3.26-.149-4.771-1.699-4.919-4.92-.058-1.265-.07-1.644-.07-4.849 0-3.204.013-3.583.07-4.849.149-3.227 1.664-4.771 4.919-4.919 1.266-.057 1.645-.069 4.849-.069zm0-2.163c-3.259 0-3.667.014-4.947.072-4.358.2-6.78 2.618-6.98 6.98-.059 1.281-.073 1.689-.073 4.948 0 3.259.014 3.668.072 4.948.2 4.358 2.618 6.78 6.98 6.98 1.281.058 1.689.072 4.948.072 3.259 0 3.668-.014 4.948-.072 4.354-.2 6.782-2.618 6.979-6.98.059-1.28.073-1.689.073-4.948 0-3.259-.014-3.667-.072-4.947-.196-4.354-2.617-6.78-6.979-6.98-1.281-.059-1.69-.073-4.949-.073zm0 5.838c-3.403 0-6.162 2.759-6.162 6.162s2.759 6.163 6.162 6.163 6.162-2.759 6.162-6.163c0-3.403-2.759-6.162-6.162-6.162zm0 10.162c-2.209 0-4-1.79-4-4 0-2.209 1.791-4 4-4s4 1.791 4 4c0 2.21-1.791 4-4 4zm6.406-11.845c-.796 0-1.441.645-1.441 1.44s.645 1.44 1.441 1.44c.795 0 1.439-.645 1.439-1.44s-.644-1.44-1.439-1.44z" />
-                    </svg>
-                    Seguinos en Instagram
-                </a>
+                <div id="productsGrid" class="products-grid">
+                    <!-- Productos cargados dinámicamente desde Firebase -->
+                </div>
+
+                <button type="button" class="btn-goto-products" style="background: rgba(255,255,255,0.1); border: 1px solid rgba(255,255,255,0.2); margin-top: 25px;" onclick="cambiarApartado('inicio')">
+                    ⬅️ Volver a mi Cupón de Descuento
+                </button>
             </div>
-
-            <p class="invite-note">
-                Te invitamos a seguirnos en nuestras redes sociales y darnos tu opinión sobre esta iniciativa. ¡Nos
-                ayuda muchísimo a crecer!
-            </p>
 
             <footer class="card-footer">
                 <span class="brand-name">URBANCELL</span>
@@ -141,6 +667,14 @@
         </div>
     </main>
 
-</body>
+    <!-- MODAL PANTALLA COMPLETA PARA VER IMAGEN -->
+    <div id="imageModal" class="image-modal" onclick="cerrarModalImagen(event)">
+        <div class="image-modal-content" onclick="event.stopPropagation()">
+            <button type="button" class="image-modal-close" onclick="cerrarModalImagen(event)">&times;</button>
+            <img id="modalImg" src="" alt="Imagen del producto ampliada" class="image-modal-img">
+            <div id="modalCaption" class="image-modal-caption"></div>
+        </div>
+    </div>
 
+</body>
 </html>
