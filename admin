@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Panel Admin | Urbancell</title>
+    <link href="https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600;700;800&display=swap" rel="stylesheet">
+    
+    <!-- Firebase SDKs -->
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-app-compat.js"></script>
+    <script src="https://www.gstatic.com/firebasejs/9.23.0/firebase-database-compat.js"></script>
+
+    <style>
+        * { box-sizing: border-box; }
+        body {
+            font-family: 'Montserrat', sans-serif;
+            background: #0f0f1a;
+            color: #fff;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            margin: 0;
+            padding: 20px;
+        }
+        .admin-card {
+            background: #1e1e2f;
+            border: 1px solid rgba(255,255,255,0.1);
+            border-radius: 16px;
+            padding: 25px;
+            max-width: 520px;
+            width: 100%;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5);
+        }
+        h2 { color: #a55eea; margin-top: 0; font-size: 1.4rem; text-align: center; }
+        
+        .stats-box {
+            background: rgba(165, 94, 234, 0.08);
+            border: 1px solid #a55eea;
+            border-radius: 12px;
+            padding: 15px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .stats-title {
+            font-size: 0.8rem;
+            color: #a55eea;
+            text-transform: uppercase;
+            font-weight: 800;
+            letter-spacing: 1px;
+            margin-bottom: 12px;
+        }
+        .stats-grid {
+            display: flex;
+            justify-content: space-around;
+            align-items: center;
+        }
+        .stat-num { font-size: 1.8rem; font-weight: 800; }
+        .stat-num.qr { color: #2ed573; }
+        .stat-num.total { color: #00d2d3; }
+        .stat-label { font-size: 0.75rem; color: #aaa; margin-top: 2px; font-weight: 600; }
+
+        .timer-admin-box {
+            background: rgba(255, 71, 87, 0.1);
+            border: 1px solid #ff4757;
+            border-radius: 14px;
+            padding: 18px;
+            margin-bottom: 20px;
+            text-align: center;
+        }
+        .timer-live-display {
+            font-size: 2.2rem;
+            font-weight: 900;
+            font-family: monospace;
+            color: #ff4757;
+            letter-spacing: 2px;
+            margin: 8px 0;
+        }
+        .time-controls {
+            display: flex;
+            gap: 8px;
+            justify-content: center;
+            margin-top: 12px;
+            flex-wrap: wrap;
+        }
+        .btn-time {
+            background: rgba(255,255,255,0.1);
+            border: 1px solid rgba(255,255,255,0.2);
+            color: #fff;
+            padding: 8px 12px;
+            border-radius: 8px;
+            font-size: 0.8rem;
+            font-weight: 700;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+        .btn-time:hover { background: rgba(255,255,255,0.2); }
+        .btn-time.add { border-color: #2ed573; color: #2ed573; }
+        .btn-time.sub { border-color: #ff4757; color: #ff4757; }
+
+        .form-group { margin-bottom: 15px; text-align: left; }
+        label { display: block; font-size: 0.85rem; color: #ccc; margin-bottom: 6px; font-weight: 600; }
+        input[type="text"], input[type="number"], input[type="password"] {
+            width: 100%; padding: 10px 12px; background: rgba(0,0,0,0.4); border: 1px solid #444; border-radius: 8px; color: #fff; font-size: 0.9rem; font-family: inherit;
+        }
+        .btn-action {
+            width: 100%; padding: 14px; background: #a55eea; color: #fff; border: none; border-radius: 8px; font-weight: 800; font-size: 1rem; cursor: pointer; margin-top: 15px; transition: background 0.2s;
+        }
+        .btn-action:hover { background: #8e44ad; }
+
+        /* ITEMS DE PRODUCTO CON IMAGEN EN ADMIN */
+        .product-item {
+            background: rgba(255,255,255,0.05);
+            padding: 12px;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            border: 1px solid rgba(255,255,255,0.08);
+        }
+        .product-header-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 8px;
+        }
+        .product-name { font-size: 0.9rem; font-weight: 700; }
+        .btn-toggle {
+            padding: 6px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 0.75rem; cursor: pointer; color: #fff; text-transform: uppercase;
+        }
+        .image-controls {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+            margin-top: 8px;
+        }
+        .thumb-preview {
+            width: 50px;
+            height: 50px;
+            border-radius: 6px;
+            object-fit: cover;
+            background: #222;
+            border: 1px solid #444;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.2rem;
+            flex-shrink: 0;
+            overflow: hidden;
+        }
+        .thumb-preview img { width: 100%; height: 100%; object-fit: cover; }
+        .file-btn {
+            background: #333;
+            color: #aaa;
+            border: 1px solid #555;
+            padding: 6px 10px;
+            border-radius: 6px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            cursor: pointer;
+            white-space: nowrap;
+        }
+        .status-msg {
+            margin-top: 15px; padding: 10px; border-radius: 8px; font-size: 0.85rem; text-align: center; font-weight: 600; display: none; word-break: break-word;
+        }
+        .status-msg.success { background: rgba(46, 213, 115, 0.2); border: 1px solid #2ed573; color: #2ed573; }
+        .status-msg.error { background: rgba(255, 71, 87, 0.2); border: 1px solid #ff4757; color: #ff4757; }
+    </style>
+</head>
+<body>
+
+    <!-- INICIO DE SESIÓN -->
+    <div id="loginBox" class="admin-card">
+        <h2>🔐 Acceso Administrador</h2>
+        <p style="font-size: 0.85rem; color: #aaa; text-align: center; margin-bottom: 20px;">
+            Ingresá tu teléfono registrado y tu contraseña.
+        </p>
+        <div class="form-group">
+            <label for="phoneInput">Número de Teléfono:</label>
+            <input type="text" id="phoneInput" placeholder="Ej: +59897305438 o 097305438">
+        </div>
+        <div class="form-group">
+            <label for="passInput">Contraseña de Administrador:</label>
+            <input type="password" id="passInput" placeholder="Escribí tu contraseña">
+        </div>
+        <button type="button" class="btn-action" onclick="verificarCredenciales()">Iniciar Sesión</button>
+        <div id="loginStatus" class="status-msg"></div>
+    </div>
+
+    <!-- PANEL DE CONTROL ADMIN -->
+    <div id="panelBox" class="admin-card" style="display: none;">
+        <h2>⚙️ Panel Admin Urbancell</h2>
+        <p style="font-size: 0.8rem; color: #2ed573; text-align: center; margin-bottom: 15px;">
+            🟢 Sesión activa (+59897305438)
+        </p>
+
+        <!-- TRÁFICO -->
+        <div class="stats-box">
+            <div class="stats-title">📊 Tráfico en Tiempo Real</div>
+            <div class="stats-grid">
+                <div>
+                    <div class="stat-num qr" id="statQR">0</div>
+                    <div class="stat-label">Escaneos QR</div>
+                </div>
+                <div style="width: 1px; height: 35px; background: rgba(255,255,255,0.1);"></div>
+                <div>
+                    <div class="stat-num total" id="statTotal">0</div>
+                    <div class="stat-label">Visitas Totales</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- TEMPORIZADOR EN VIVO -->
+        <div class="timer-admin-box">
+            <div class="stats-title" style="color:#ff6b81;">⏱️ Temporizador Global en Vivo</div>
+            <div class="timer-live-display" id="adminTimerDisplay">00m 00s</div>
+            
+            <div class="time-controls">
+                <button type="button" class="btn-time sub" onclick="modificarTiempo(-5)">-5 min</button>
+                <button type="button" class="btn-time sub" onclick="modificarTiempo(-1)">-1 min</button>
+                <button type="button" class="btn-time add" onclick="modificarTiempo(1)">+1 min</button>
+                <button type="button" class="btn-time add" onclick="modificarTiempo(5)">+5 min</button>
+            </div>
+            
+            <div style="margin-top: 12px; display: flex; gap: 8px;">
+                <input type="number" id="newMinutesInput" placeholder="Minutos" style="width: 100px; text-align: center;" value="15">
+                <button type="button" class="btn-time" style="flex: 1; background: #a55eea;" onclick="reiniciarConTiempo()">Reiniciar Reloj</button>
+            </div>
+        </div>
+
+        <div class="form-group" style="display: flex; align-items: center; margin: 20px 0;">
+            <input type="checkbox" id="timerCheck" onchange="toggleTimerState()">
+            <label for="timerCheck" style="margin: 0; cursor: pointer;">Mostrar Temporizador en la Tienda</label>
+        </div>
+
+        <div class="form-group">
+            <label>Gestión de Productos e Imágenes:</label>
+            <div id="productList"></div>
+        </div>
+
+        <button type="button" id="btnGuardar" class="btn-action" onclick="guardarTodo()">💾 Guardar Ajustes y Publicar</button>
+        <div id="panelStatus" class="status-msg"></div>
+    </div>
+
+    <script>
+        const firebaseConfig = {
+            apiKey: "AIzaSyBIKMKsPze8lmrUw9O2TbF22O8sT1fRaZk",
+            authDomain: "urbancelloficial.firebaseapp.com",
+            databaseURL: "https://urbancelloficial-default-rtdb.firebaseio.com",
+            projectId: "urbancelloficial",
+            storageBucket: "urbancelloficial.firebasestorage.app",
+            messagingSenderId: "287351180379",
+            appId: "1:287351180379:web:73ce06da8fd04720f5037e",
+            measurementId: "G-190ST11CEJ"
+        };
+
+        const ADMIN_PHONE_FIXED = "59897305438"; 
+        const ADMIN_PASS_FIXED = "urban2026";
+        
+        let db = null;
+        let adminTimerInterval = null;
+
+        let dataGlobal = {
+            whatsapp: ADMIN_PHONE_FIXED,
+            timer: { enabled: true, targetTime: new Date().getTime() + 15 * 60 * 1000 },
+            products: [
+                { id: 1, name: "Auriculares JBL Tune 510BT", inStock: true, image: "" },
+                { id: 2, name: "Cargador Rápido USB-C 20W", inStock: true, image: "" },
+                { id: 3, name: "Power Bank Carga Rápida", inStock: true, image: "" },
+                { id: 4, name: "Funda de Silicona iPhone", inStock: false, image: "" }
+            ]
+        };
+
+        function mostrarMensaje(elementId, texto, esError = false) {
+            const el = document.getElementById(elementId);
+            if (!el) return;
+            el.innerText = texto;
+            el.className = `status-msg ${esError ? 'error' : 'success'}`;
+            el.style.display = "block";
+        }
+
+        function initFirebase() {
+            try {
+                if (!firebase.apps.length) {
+                    firebase.initializeApp(firebaseConfig);
+                }
+                db = firebase.database();
+                return true;
+            } catch (e) {
+                mostrarMensaje("loginStatus", "Error en Firebase: " + e.message, true);
+                return false;
+            }
+        }
+
+        function verificarCredenciales() {
+            const inputPhoneRaw = document.getElementById("phoneInput").value;
+            const inputPass = document.getElementById("passInput").value;
+            
+            let cleanPhone = inputPhoneRaw.replace(/[^0-9]/g, "");
+
+            if (cleanPhone.startsWith("09")) {
+                cleanPhone = "598" + cleanPhone.substring(1);
+            } else if (cleanPhone.length === 8) {
+                cleanPhone = "598" + cleanPhone;
+            }
+
+            if (cleanPhone === ADMIN_PHONE_FIXED && inputPass === ADMIN_PASS_FIXED) {
+                if (!initFirebase()) return;
+                
+                document.getElementById("loginBox").style.display = "none";
+                document.getElementById("panelBox").style.display = "block";
+                cargarDatos();
+
+                const fechaActual = new Date();
+                const horaAcceso = fechaActual.toLocaleTimeString('es-UY');
+                const fechaAcceso = fechaActual.toLocaleDateString('es-UY');
+                
+                const mensajeAlerta = `⚠️ *ALERTA DE SEGURIDAD URBANCELL* ⚠️%0A%0ASe ha iniciado sesión en el Panel de Administrador.%0A%0A📅 Fecha: ${fechaAcceso}%0A⏰ Hora: ${horaAcceso}%0A%0ASi no fuiste vos, revisá la seguridad de tus accesos.`;
+                
+                try {
+                    window.open(`https://wa.me/${ADMIN_PHONE_FIXED}?text=${mensajeAlerta}`, '_blank');
+                } catch(e) {}
+
+            } else {
+                mostrarMensaje("loginStatus", "⛔ Acceso denegado: Teléfono o contraseña incorrectos.", true);
+            }
+        }
+
+        function cargarDatos() {
+            mostrarMensaje("panelStatus", "Conectando a Firebase...", false);
+            if (!db) return;
+
+            db.ref().on('value', (snapshot) => {
+                const val = snapshot.val();
+                if (val) {
+                    dataGlobal = val;
+                } else {
+                    db.ref().set(dataGlobal);
+                }
+
+                dataGlobal.whatsapp = ADMIN_PHONE_FIXED;
+                
+                const timerData = dataGlobal.timer || { enabled: true, targetTime: new Date().getTime() + 15 * 60 * 1000 };
+                document.getElementById("timerCheck").checked = timerData.enabled;
+
+                const stats = dataGlobal.stats || { qrScans: 0, totalVisits: 0 };
+                document.getElementById("statQR").innerText = stats.qrScans || 0;
+                document.getElementById("statTotal").innerText = stats.totalVisits || 0;
+
+                iniciarRelojAdmin(timerData.targetTime, timerData.enabled);
+
+                renderProductosAdmin();
+                mostrarMensaje("panelStatus", "🟢 Conectado con éxito a Firebase", false);
+            });
+        }
+
+        function iniciarRelojAdmin(targetTime, enabled) {
+            const display = document.getElementById("adminTimerDisplay");
+            if (!display) return;
+
+            if (adminTimerInterval) clearInterval(adminTimerInterval);
+
+            if (!enabled || !targetTime) {
+                display.innerText = "DESACTIVADO";
+                display.style.color = "#777";
+                return;
+            }
+
+            function actualizar() {
+                const now = new Date().getTime();
+                const distance = targetTime - now;
+
+                if (distance <= 0) {
+                    display.innerText = "00m 00s (EXPIRADO)";
+                    display.style.color = "#ff4757";
+                    return;
+                }
+
+                display.style.color = "#2ed573";
+                const m = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
+                const s = Math.floor((distance % (1000 * 60)) / 1000);
+                display.innerText = `${m < 10 ? '0'+m : m}m ${s < 10 ? '0'+s : s}s`;
+            }
+
+            actualizar();
+            adminTimerInterval = setInterval(actualizar, 1000);
+        }
+
+        function modificarTiempo(minutos) {
+            if (!db) return;
+
+            const now = new Date().getTime();
+            let currentTarget = (dataGlobal.timer && dataGlobal.timer.targetTime) ? Number(dataGlobal.timer.targetTime) : 0;
+            
+            let base = (currentTarget > now) ? currentTarget : now;
+            let newTarget = base + (minutos * 60 * 1000);
+
+            if (newTarget < now) newTarget = now;
+
+            db.ref("timer").update({
+                enabled: true,
+                targetTime: newTarget
+            }).then(() => {
+                mostrarMensaje("panelStatus", `¡Tiempo actualizado! (${minutos > 0 ? '+' : ''}${minutos} min)`, false);
+            });
+        }
+
+        function reiniciarConTiempo() {
+            if (!db) return;
+            const minInput = parseInt(document.getElementById("newMinutesInput").value) || 15;
+            const now = new Date().getTime();
+            const newTarget = now + (minInput * 60 * 1000);
+
+            db.ref("timer").set({
+                enabled: document.getElementById("timerCheck").checked,
+                targetTime: newTarget
+            }).then(() => {
+                mostrarMensaje("panelStatus", `¡Reloj reiniciado a ${minInput} minutos!`, false);
+            });
+        }
+
+        function toggleTimerState() {
+            if (!db) return;
+            const enabled = document.getElementById("timerCheck").checked;
+            db.ref("timer/enabled").set(enabled);
+        }
+
+        function renderProductosAdmin() {
+            const list = document.getElementById("productList");
+            if (!list) return;
+            list.innerHTML = "";
+            
+            if (!dataGlobal.products) return;
+
+            dataGlobal.products.forEach((p, idx) => {
+                const div = document.createElement("div");
+                div.className = "product-item";
+                
+                const imgHtml = p.image 
+                    ? `<img src="${p.image}" alt="Vista previa">` 
+                    : `📱`;
+
+                div.innerHTML = `
+                    <div class="product-header-row">
+                        <span class="product-name">${p.name}</span>
+                        <button type="button" class="btn-toggle" style="background:${p.inStock ? '#2ed573' : '#ff4757'}" onclick="toggleStock(${idx})">
+                            ${p.inStock ? 'CON STOCK' : 'SIN STOCK'}
+                        </button>
+                    </div>
+                    <div class="image-controls">
+                        <div class="thumb-preview" id="thumb-${idx}">
+                            ${imgHtml}
+                        </div>
+                        <input type="text" id="imgUrl-${idx}" placeholder="Ruta/URL de imagen (ej: img/jbl.jpg)" value="${p.image || ''}" onchange="cambiarImagenTexto(${idx}, this.value)">
+                        <label class="file-btn">
+                            📁 Subir
+                            <input type="file" accept="image/*" style="display:none;" onchange="subirImagenLocal(${idx}, this)">
+                        </label>
+                    </div>
+                `;
+                list.appendChild(div);
+            });
+        }
+
+        function toggleStock(index) {
+            dataGlobal.products[index].inStock = !dataGlobal.products[index].inStock;
+            renderProductosAdmin();
+        }
+
+        function cambiarImagenTexto(index, val) {
+            dataGlobal.products[index].image = val.trim();
+            const thumb = document.getElementById(`thumb-${index}`);
+            if (thumb) {
+                thumb.innerHTML = val.trim() ? `<img src="${val.trim()}" alt="Vista previa">` : `📱`;
+            }
+        }
+
+        function subirImagenLocal(index, fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const base64Data = e.target.result;
+                dataGlobal.products[index].image = base64Data;
+                const inputUrl = document.getElementById(`imgUrl-${index}`);
+                if (inputUrl) inputUrl.value = "Imagen subida (archivo local)";
+                const thumb = document.getElementById(`thumb-${index}`);
+                if (thumb) thumb.innerHTML = `<img src="${base64Data}" alt="Vista previa">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function guardarTodo() {
+            const btn = document.getElementById("btnGuardar");
+            btn.disabled = true;
+
+            if (!db) return;
+
+            db.ref().update({
+                whatsapp: ADMIN_PHONE_FIXED,
+                products: dataGlobal.products
+            }).then(() => {
+                mostrarMensaje("panelStatus", "¡Ajustes de Productos e Imágenes guardados correctamente!", false);
+            }).finally(() => {
+                btn.disabled = false;
+            });
+        }
+    </script>
+</body>
+</html>
