@@ -108,7 +108,35 @@
         }
         .btn-action:hover { background: #8e44ad; }
 
-        /* ITEMS DE PRODUCTO CON IMAGEN EN ADMIN */
+        /* FORMULARIO AGREGAR PRODUCTO */
+        .add-product-box {
+            background: rgba(165, 94, 234, 0.1);
+            border: 1px dashed #a55eea;
+            border-radius: 12px;
+            padding: 16px;
+            margin-bottom: 20px;
+        }
+        .add-product-title {
+            font-size: 0.9rem;
+            font-weight: 800;
+            color: #a55eea;
+            margin-bottom: 12px;
+            text-transform: uppercase;
+        }
+        .btn-add-prod {
+            background: #2ed573;
+            color: #111;
+            border: none;
+            padding: 10px;
+            border-radius: 8px;
+            font-weight: 800;
+            font-size: 0.85rem;
+            width: 100%;
+            cursor: pointer;
+            margin-top: 10px;
+        }
+
+        /* ITEMS DE PRODUCTO EN LISTA */
         .product-item {
             background: rgba(255,255,255,0.05);
             padding: 12px;
@@ -121,10 +149,20 @@
             justify-content: space-between;
             align-items: center;
             margin-bottom: 8px;
+            gap: 8px;
         }
-        .product-name { font-size: 0.9rem; font-weight: 700; }
+        .product-name { font-size: 0.9rem; font-weight: 700; flex: 1; }
         .btn-toggle {
             padding: 6px 10px; border: none; border-radius: 6px; font-weight: 700; font-size: 0.75rem; cursor: pointer; color: #fff; text-transform: uppercase;
+        }
+        .btn-delete {
+            background: rgba(255, 71, 87, 0.2);
+            border: 1px solid #ff4757;
+            color: #ff4757;
+            padding: 5px 8px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.8rem;
         }
         .image-controls {
             display: flex;
@@ -171,15 +209,15 @@
     <div id="loginBox" class="admin-card">
         <h2>🔐 Acceso Administrador</h2>
         <p style="font-size: 0.85rem; color: #aaa; text-align: center; margin-bottom: 20px;">
-            Ingresá su usuario registrado y su contraseña.
+            Ingresá tu usuario registrado y tu contraseña.
         </p>
         <div class="form-group">
-            <label for="phoneInput">Ingresa tu usuario:</label>
+            <label for="phoneInput">Usuario:</label>
             <input type="text" id="phoneInput" placeholder="">
         </div>
         <div class="form-group">
             <label for="passInput">Contraseña de Administrador:</label>
-            <input type="password" id="passInput" placeholder="Escribí tu contraseña">
+            <input type="password" id="passInput" placeholder="">
         </div>
         <button type="button" class="btn-action" onclick="verificarCredenciales()">Iniciar Sesión</button>
         <div id="loginStatus" class="status-msg"></div>
@@ -227,10 +265,33 @@
         </div>
 
         <div class="form-group" style="display: flex; align-items: center; margin: 20px 0;">
-            <input type="checkbox" id="timerCheck" onchange="toggleTimerState()">
+            <input type="checkbox" id="timerCheck" onchange="toggleTimerState()" style="transform: scale(1.2); margin-right: 8px;">
             <label for="timerCheck" style="margin: 0; cursor: pointer;">Mostrar Temporizador en la Tienda</label>
         </div>
 
+        <!-- FORMULARIO PARA AGREGAR NUEVO PRODUCTO -->
+        <div class="add-product-box">
+            <div class="add-product-title">➕ Agregar Nuevo Producto</div>
+            <div class="form-group">
+                <label for="newProdName">Nombre del producto:</label>
+                <input type="text" id="newProdName" placeholder="Ej: Cable USB-C Carga Rápida 2m">
+            </div>
+            <div class="form-group" style="display: flex; align-items: center;">
+                <input type="checkbox" id="newProdStock" checked style="transform: scale(1.2); margin-right: 8px;">
+                <label for="newProdStock" style="margin: 0; cursor: pointer;">Disponible (Con Stock)</label>
+            </div>
+            <div class="image-controls">
+                <div class="thumb-preview" id="thumb-new">📱</div>
+                <input type="text" id="newProdImgUrl" placeholder="Ruta/URL de imagen (opcional)" onchange="previewNuevaImagen(this.value)">
+                <label class="file-btn">
+                    📁 Subir
+                    <input type="file" accept="image/*" style="display:none;" onchange="subirImagenNuevaProd(this)">
+                </label>
+            </div>
+            <button type="button" class="btn-add-prod" onclick="agregarProducto()">+ Agregar a la Lista</button>
+        </div>
+
+        <!-- LISTA DE PRODUCTOS EXISTENTES -->
         <div class="form-group">
             <label>Gestión de Productos e Imágenes:</label>
             <div id="productList"></div>
@@ -257,6 +318,7 @@
         
         let db = null;
         let adminTimerInterval = null;
+        let tempNewProdImage = "";
 
         let dataGlobal = {
             whatsapp: ADMIN_PHONE_FIXED,
@@ -428,7 +490,7 @@
             if (!list) return;
             list.innerHTML = "";
             
-            if (!dataGlobal.products) return;
+            if (!dataGlobal.products) dataGlobal.products = [];
 
             dataGlobal.products.forEach((p, idx) => {
                 const div = document.createElement("div");
@@ -444,12 +506,13 @@
                         <button type="button" class="btn-toggle" style="background:${p.inStock ? '#2ed573' : '#ff4757'}" onclick="toggleStock(${idx})">
                             ${p.inStock ? 'CON STOCK' : 'SIN STOCK'}
                         </button>
+                        <button type="button" class="btn-delete" title="Eliminar producto" onclick="eliminarProducto(${idx})">🗑️</button>
                     </div>
                     <div class="image-controls">
                         <div class="thumb-preview" id="thumb-${idx}">
                             ${imgHtml}
                         </div>
-                        <input type="text" id="imgUrl-${idx}" placeholder="Ruta/URL de imagen (ej: img/jbl.jpg)" value="${p.image || ''}" onchange="cambiarImagenTexto(${idx}, this.value)">
+                        <input type="text" id="imgUrl-${idx}" placeholder="Ruta/URL de imagen" value="${p.image || ''}" onchange="cambiarImagenTexto(${idx}, this.value)">
                         <label class="file-btn">
                             📁 Subir
                             <input type="file" accept="image/*" style="display:none;" onchange="subirImagenLocal(${idx}, this)">
@@ -458,6 +521,67 @@
                 `;
                 list.appendChild(div);
             });
+        }
+
+        /* AGREGAR Y ELIMINAR PRODUCTOS */
+        function previewNuevaImagen(val) {
+            const thumb = document.getElementById("thumb-new");
+            if (thumb) thumb.innerHTML = val.trim() ? `<img src="${val.trim()}" alt="Preview">` : "📱";
+        }
+
+        function subirImagenNuevaProd(fileInput) {
+            const file = fileInput.files[0];
+            if (!file) return;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                tempNewProdImage = e.target.result;
+                document.getElementById("newProdImgUrl").value = "Imagen subida localmente";
+                document.getElementById("thumb-new").innerHTML = `<img src="${tempNewProdImage}" alt="Preview">`;
+            };
+            reader.readAsDataURL(file);
+        }
+
+        function agregarProducto() {
+            const inputNombre = document.getElementById("newProdName");
+            const nombre = inputNombre.value.trim();
+            if (!nombre) {
+                alert("Escribí el nombre del producto.");
+                return;
+            }
+
+            const imagen = tempNewProdImage || document.getElementById("newProdImgUrl").value.trim();
+
+            if (!dataGlobal.products) dataGlobal.products = [];
+
+            const nuevoId = dataGlobal.products.length > 0 
+                ? Math.max(...dataGlobal.products.map(p => p.id || 0)) + 1 
+                : 1;
+
+            dataGlobal.products.push({
+                id: nuevoId,
+                name: nombre,
+                inStock: document.getElementById("newProdStock").checked,
+                image: imagen
+            });
+
+            // Limpiar formulario
+            inputNombre.value = "";
+            document.getElementById("newProdImgUrl").value = "";
+            document.getElementById("newProdStock").checked = true;
+            tempNewProdImage = "";
+            document.getElementById("thumb-new").innerHTML = "📱";
+
+            renderProductosAdmin();
+            mostrarMensaje("panelStatus", "Producto agregado a la lista. Recordá tocar '💾 Guardar Ajustes y Publicar'.", false);
+        }
+
+        function eliminarProducto(index) {
+            if (confirm(`¿Estás seguro de eliminar "${dataGlobal.products[index].name}"?`)) {
+                dataGlobal.products.splice(index, 1);
+                renderProductosAdmin();
+                mostrarMensaje("panelStatus", "Producto eliminado de la lista. Tocá '💾 Guardar Ajustes y Publicar' para guardar los cambios.", false);
+            }
         }
 
         function toggleStock(index) {
@@ -482,7 +606,7 @@
                 const base64Data = e.target.result;
                 dataGlobal.products[index].image = base64Data;
                 const inputUrl = document.getElementById(`imgUrl-${index}`);
-                if (inputUrl) inputUrl.value = "Imagen subida (archivo local)";
+                if (inputUrl) inputUrl.value = "Imagen subida localmente";
                 const thumb = document.getElementById(`thumb-${index}`);
                 if (thumb) thumb.innerHTML = `<img src="${base64Data}" alt="Vista previa">`;
             };
@@ -499,7 +623,7 @@
                 whatsapp: ADMIN_PHONE_FIXED,
                 products: dataGlobal.products
             }).then(() => {
-                mostrarMensaje("panelStatus", "¡Ajustes de Productos e Imágenes guardados correctamente!", false);
+                mostrarMensaje("panelStatus", "¡Productos guardados y publicados con éxito!", false);
             }).finally(() => {
                 btn.disabled = false;
             });
